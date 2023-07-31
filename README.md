@@ -9,7 +9,7 @@ This open-source project contains the Python implementation of time predication 
 4. [Path-based-approach](https://github.com/dice-group/COPAAL/tree/develop) to calculate output score for the path-based component.
 
 This project consists of 2 independent components:
-1. [Fact-checking](https://github.com/dice-group/TemporalFC/TemporalFC-FC-part) component.
+1. [Fact-checking]([https://github.com/dice-group/TemporalFC/TemporalFC-FC-part](https://github.com/dice-group/TemporalFC/tree/e1b92967b0a2608c2e089bd1a13f59420c491f9b/TemporalFC-FC-part)) component.
 2. [Time-point prediction](https://github.com/dice-group/TemporalFC) component.
 
 
