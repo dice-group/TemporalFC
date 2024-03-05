@@ -1,7 +1,7 @@
 # TemporalFC: A Temporal Fact-Checking Approach for Knowledge Graphs
 ## Time predication component
 
-This open-source project contains the Python implementation of time predication component our approach [TemporalFC](https://github.com/factcheckerr/TemporalFC). This project is designed to ease real-world applications of fact-checking over knowledge graphs and produce better results. With this aim, we rely on:
+This open-source project contains the Python implementation of our approach [TemporalFC](https://papers.dice-research.org/2023/ISWC_TemporalFC/public.pdf). This project is designed to ease real-world applications of fact-checking over temporal knowledge graphs and produce better results. With this aim, we rely on:
 
 1. [PytorchLightning](https://www.pytorchlightning.ai/) to perform training via multi-CPUs, GPUs, TPUs or  computing cluster, 
 2. [Pre-trained-TKG-embeddings](https://link.springer.com/chapter/10.1007/978-3-031-06981-9_15) to get pre-trained TKG embeddings for knowledge graphs for knowledge graph-based component, 
