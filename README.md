@@ -95,9 +95,13 @@ Fact checking part of TemporalFC is available in a second project: [TemporalFC-F
 As future work, we will exploit the modularity of TemporalFC by integrating time-period based fact checking. 
 
 ## Acknowledgement 
-To be added later!
+The work has been supported by the EU H2020 Marie Skłodowska-Curie project KnowGraphs (no. 860801)).
 ## Authors
-To be added later!
+* [Umair Qudus](https://dice-research.org/UmairQudus) (DICE, Paderborn University) 
+* [ Michael Röder](https://dice-research.org/MichaelRoeder) (DICE,  Paderborn University) 
+* [Sabrina Kirrane](http://sabrinakirrane.com/) (WU,  WU Vienna) 
+* [Axel-Cyrille Ngonga Ngomo](https://dice-research.org/AxelCyrilleNgongaNgomo) (DICE,  Paderborn University)
+  
 
 
 
