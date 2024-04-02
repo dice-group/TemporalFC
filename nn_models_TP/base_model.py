@@ -7,6 +7,8 @@ from typing import List, Any, Tuple
 from torch.nn.init import xavier_normal_
 from torch import Tensor as tf
 import torch.nn as nn
+import pandas as pd
+
 from numpy.random import RandomState
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score
@@ -33,29 +35,46 @@ class BaseKGE(pl.LightningModule):
 
         # added by umair to make time embeddings as a label...todo-> find a solution to move it in main class
         self.embedding_dim = args.embedding_dim
-        self.tim_embeddings = args.dataset.emb_time
-        self.num_times = args.num_times
-        for i, word in enumerate(self.tim_embeddings):
-            self.embedding_dim_tim = len(word)
-            break
-        self.time_embeddings = nn.Embedding(self.num_times, self.embedding_dim_tim)
-        self.time_embeddings.load_state_dict({'weight': torch.tensor(self.convrt_embeddings(args.num_times, self.embedding_dim_tim, self.tim_embeddings))})
+        if str(args.model).startswith("temporal"):
+            self.tim_embeddings = args.dataset.emb_time
+            self.num_times = args.num_times
+            for i, word in enumerate(self.tim_embeddings):
+                self.embedding_dim_tim = len(word)
+                break
+            self.time_embeddings = nn.Embedding(self.num_times, self.embedding_dim_tim)
+            self.time_embeddings.load_state_dict({'weight': torch.tensor(self.convrt_embeddings(args.num_times, self.embedding_dim_tim, self.tim_embeddings))})
 
 
     def convrt_embeddings(self,num_entities,embedding_dim,embeddings):
         weights_matrix = np.zeros((num_entities, embedding_dim))
         words_found = 0
-        for i, word in enumerate(embeddings):
-            try:
-                if len(word) == 2305:
-                    weights_matrix[i] = word[:-1]
-                else:
-                    weights_matrix[i] = word.detach().numpy()
-                words_found += 1
-            except KeyError:
-                print('test')
-                exit(1)
-        return weights_matrix
+        if isinstance(embeddings, pd.DataFrame):
+            ii = 0
+            for i, word in embeddings.iterrows():
+                try:
+                    if len(word) == embedding_dim:
+                        weights_matrix[ii] = word
+                    else:
+                        weights_matrix[ii] = word.detach().numpy()
+                    ii = ii +1
+                    words_found += 1
+                except KeyError:
+                    print('test')
+                    exit(1)
+            return weights_matrix
+
+        else:
+            for i, word in enumerate(embeddings):
+                try:
+                    if len(word) == 2305:
+                        weights_matrix[i] = word[:-1]
+                    else:
+                        weights_matrix[i] = word.detach().numpy()
+                    words_found += 1
+                except KeyError:
+                    print('test')
+                    exit(1)
+            return weights_matrix
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters())
@@ -69,20 +88,21 @@ class BaseKGE(pl.LightningModule):
     # self, e1_idx, rel_idx, e2_idx, sen_idx, type = "training"):
     def forward(self, x):
         if len(x) == 5:
-            e1_idx, rel_idx, e2_idx, t_idx, v_idx = x[0], x[1], x[2], x[3], x[4]
-            return self.forward_triples(e1_idx, rel_idx, e2_idx,t_idx,v_idx)
+            e1_idx, rel_idx, e2_idx, t_idx, s_idx, v_idx = x[0], x[1], x[2], x[3], x[4], x[5]
+            return self.forward_triples(e1_idx, rel_idx, e2_idx,t_idx, s_idx, v_idx)
         else:
             raise ValueError('Not valid input')
 
     def training_step(self, batch, batch_idx):
-        idx_s, idx_p, idx_o, t_data, v_data, label = batch[0], batch[1], batch[2], batch[3], batch[4], batch[5]
+        idx_s, idx_p, idx_o, t_data, s_data, v_data, label = batch[0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
         # Label conversion
-        label = t_data
+        # for time prediction only the following unupre0d
+        # label = t_data
         # label = self.time_embeddings(t_data)
         # 2. Forward pass
-        pred = self.forward_triples(idx_s, idx_p, idx_o, t_data, v_data, "training")
+        pred = self.forward_triples(idx_s, idx_p, idx_o, t_data, s_data, v_data, "training")
         # 3. Compute Loss
-        loss = self.loss_function(pred, label)
+        loss = self.loss_function(pred.flatten(), torch.tensor(label,dtype=torch.float))
         # applying L2 regularization here
         # Replaces pow(2.0) with abs() for L1 regularization
         l2_lambda = 0.001
@@ -104,16 +124,16 @@ class BaseKGE(pl.LightningModule):
 
 
     def validation_step(self, batch, batch_idx):
-        idx_s, idx_p, idx_o, t_data, v_data, label = batch[0], batch[1], batch[2], batch[3], batch[4], batch[5]
+        idx_s, idx_p, idx_o, t_data,s_data, v_data, label = batch[0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
         # Label conversion
-        label = t_data
+        # label = t_data
         # label = self.time_embeddings(t_data)
         # 2. Forward pass
-        pred = self.forward_triples(idx_s, idx_p, idx_o, t_data, v_data, "valid")
+        pred = self.forward_triples(idx_s, idx_p, idx_o, t_data, s_data, v_data, "valid")
 
 
         # Find the Loss
-        loss = self.loss_function(pred, label)
+        loss = self.loss_function(pred.flatten(), torch.tensor(label,dtype=torch.float))
         # applying L2 regularization here
         l2_lambda = 0.001
         l2_norm = sum(p.pow(2.0).sum()
@@ -133,12 +153,12 @@ class BaseKGE(pl.LightningModule):
         self.log('avg_val_acc_per_epoch', avg_val_acc, on_epoch=True, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
-        idx_s, idx_p, idx_o, t_data, v_data, label = batch[0], batch[1], batch[2], batch[3], batch[4], batch[5]
+        idx_s, idx_p, idx_o, t_data, s_data, v_data, label = batch[0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
         # Label conversion
-        label = t_data
+        # label = t_data
         # label = self.time_embeddings(t_data)
         # 2. Forward pass
-        pred = self.forward_triples(idx_s, idx_p, idx_o, t_data, v_data, "test")
+        pred = self.forward_triples(idx_s, idx_p, idx_o, t_data, s_data, v_data, "test")
 
         # test_accuracy = accuracy(pred, label)
         # preds2 = self.get_min_cosine_similarity(label, pred)

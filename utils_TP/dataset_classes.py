@@ -27,6 +27,10 @@ class StandardDataModule(pl.LightningDataModule):
             self.dataset_type_class = FactCheckingDataset
             self.target_dim = 1
             self.neg_sample_ratio = neg_sample_ratio
+        elif self.form == 'TimePrediction':  # we can name it as FactChecking
+            self.dataset_type_class = TimePredictionDataset
+            self.target_dim = 1
+            self.neg_sample_ratio = neg_sample_ratio
         else:
             raise ValueError
 
@@ -35,6 +39,13 @@ class StandardDataModule(pl.LightningDataModule):
         if self.form == 'FactChecking':
             self.batch_size = batch_size1
             train_set = FactCheckingDataset(self.train_set_idx,
+                                            num_entities=(self.num_entities),
+                                            num_relations=(self.num_relations),
+                                            num_times=(self.num_times))
+            return DataLoader(train_set, batch_size=self.batch_size, shuffle=True,num_workers=self.num_workers)
+        elif self.form == 'TimePrediction':
+            self.batch_size = batch_size1
+            train_set = TimePredictionDataset(self.train_set_idx,
                                             num_entities=(self.num_entities),
                                             num_relations=(self.num_relations),
                                             num_times=(self.num_times))
@@ -49,7 +60,13 @@ class StandardDataModule(pl.LightningDataModule):
                                             num_relations=(self.num_relations),
                                             num_times=(self.num_times))
             return DataLoader(val_set, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
-
+        elif self.form == 'TimePrediction':
+            self.batch_size = batch_size1
+            val_set = TimePredictionDataset(self.valid_set_idx,
+                                            num_entities=(self.num_entities),
+                                            num_relations=(self.num_relations),
+                                            num_times=(self.num_times))
+            return DataLoader(val_set, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
 
     def dataloaders(self, batch_size1) -> DataLoader:
@@ -59,8 +76,12 @@ class StandardDataModule(pl.LightningDataModule):
                                                num_relations=(self.num_relations),
                                                num_times=(self.num_times))
             return DataLoader(test_set, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
-
-
+        elif self.form == 'TimePrediction':
+            test_set = TimePredictionDataset(self.test_set_idx,
+                                               num_entities=(self.num_entities),
+                                               num_relations=(self.num_relations),
+                                               num_times=(self.num_times))
+            return DataLoader(test_set, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
     def setup(self, *args, **kwargs):
         pass
@@ -73,7 +94,7 @@ class StandardDataModule(pl.LightningDataModule):
         pass
 
 
-class FactCheckingDataset(Dataset):
+class TimePredictionDataset(Dataset):
     """
     Similar Issue =
     https://github.com/pytorch/pytorch/issues/50089
@@ -86,10 +107,11 @@ class FactCheckingDataset(Dataset):
         self.rel_idx = triples_idx[:, 1]
         self.tail_idx = triples_idx[:, 2]
         self.time_idx = triples_idx[:, 3]
-        self.score_idx = triples_idx[:, 4]
-        self.lbl_idx = triples_idx[:, 5]
+        self.sent_idx = triples_idx[:, 4]
+        self.score_idx = triples_idx[:, 5]
+        self.lbl_idx = triples_idx[:, 6]
 
-        assert self.head_idx.shape == self.rel_idx.shape == self.tail_idx.shape == self.lbl_idx.shape == self.score_idx.shape == self.time_idx.shape
+        assert self.sent_idx == self.head_idx.shape == self.rel_idx.shape == self.tail_idx.shape == self.lbl_idx.shape == self.score_idx.shape == self.time_idx.shape
         self.length = len(triples_idx)
 
         self.num_entities = num_entities
@@ -104,9 +126,88 @@ class FactCheckingDataset(Dataset):
         r = self.rel_idx[idx]
         t = self.tail_idx[idx]
         time = self.time_idx[idx]
+        sent = self.sent_idx[idx]
         s = self.score_idx[idx]
         l = self.lbl_idx[idx]
-        return h, r, t,time, s, l
+        return h, r, t,time, sent, s, l
+
+class FactCheckingDataset(Dataset):
+    """
+    Similar Issue =
+    https://github.com/pytorch/pytorch/issues/50089
+    https://github.com/PyTorchLightning/pytorch-lightning/issues/538
+    """
+    def __init__(self, triples_idx, num_entities, num_relations, num_times, neg_sample_ratio=0):
+        self.neg_sample_ratio = neg_sample_ratio  # 0 Implies that we do not add negative samples. This is needed during testing and validation
+        triples_idx = torch.LongTensor(triples_idx)
+        self.head_idx = triples_idx[:, 0]
+        self.rel_idx = triples_idx[:, 1]
+        self.tail_idx = triples_idx[:, 2]
+        self.time_idx = triples_idx[:, 3]
+        self.sent_idx = triples_idx[:, 4]
+        self.score_idx = triples_idx[:, 5]
+        self.lbl_idx = triples_idx[:, 6]
+
+        assert (self.sent_idx.shape == self.head_idx.shape == self.rel_idx.shape == self.tail_idx.shape ==
+                self.lbl_idx.shape == self.score_idx.shape == self.time_idx.shape)
+        self.length = len(triples_idx)
+
+        self.num_entities = num_entities
+        self.num_relations = num_relations
+        self.num_times = num_times
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, idx):
+        h = self.head_idx[idx]
+        r = self.rel_idx[idx]
+        t = self.tail_idx[idx]
+        time = self.time_idx[idx]
+        sent = self.sent_idx[idx]
+        s = self.score_idx[idx]
+        l = self.lbl_idx[idx]
+        return h, r, t,time, sent, s, l
+
+    class FactCheckingDataset(Dataset):
+        """
+        Similar Issue =
+        https://github.com/pytorch/pytorch/issues/50089
+        https://github.com/PyTorchLightning/pytorch-lightning/issues/538
+        """
+
+        def __init__(self, triples_idx, num_entities, num_relations, num_times, neg_sample_ratio=0):
+            self.neg_sample_ratio = neg_sample_ratio  # 0 Implies that we do not add negative samples. This is needed during testing and validation
+            triples_idx = torch.LongTensor(triples_idx)
+            self.head_idx = triples_idx[:, 0]
+            self.rel_idx = triples_idx[:, 1]
+            self.tail_idx = triples_idx[:, 2]
+            self.time_idx = triples_idx[:, 3]
+            self.sent_idx = triples_idx[:, 4]
+            self.score_idx = triples_idx[:, 5]
+            self.lbl_idx = triples_idx[:, 6]
+
+            assert self.head_idx.shape == self.rel_idx.shape == self.tail_idx.shape == self.lbl_idx.shape == self.score_idx.shape == self.time_idx.shape
+            self.length = len(triples_idx)
+
+            self.num_entities = num_entities
+            self.num_relations = num_relations
+            self.num_times = num_times
+
+        def __len__(self):
+            return self.length
+
+        def __getitem__(self, idx):
+            h = self.head_idx[idx]
+            r = self.rel_idx[idx]
+            t = self.tail_idx[idx]
+            time = self.time_idx[idx]
+            sent = self.sent_idx[idx]
+            s = self.score_idx[idx]
+            l = self.lbl_idx[idx]
+            return h, r, t, time,sent, s, l
+
+
 
     # def collate_fn(self, batch):
     #     batch = torch.LongTensor(batch)

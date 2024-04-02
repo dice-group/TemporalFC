@@ -5,7 +5,7 @@ import pandas as pd
 import pytorch_lightning as pl
 # from writeCheckpointPredictionsInFile import save_data
 from pytorch_lightning import LightningModule
-from main_TP import argparse_default
+from main import argparse_default
 from data_TP import Data
 import torch
 from sklearn.metrics import classification_report
@@ -111,11 +111,15 @@ elif args.eval_dataset == "Yago3K":
     clss = ["Yago3K"]
     args.subpath = None
     args.path_dataset_folder = 'data_TP/'
+elif args.eval_dataset == "Wikidata":
+    clss = ["Wikidata"]
+    args.subpath = None
+    args.path_dataset_folder = 'data_TP/'
 
 
 for cc in clss:
-    # methods = ["full-Hybrid", "KGE-only", "text-only", "path-only", "text-KGE-Hybrid", "text-path-Hybrid", "KGE-path-Hybrid"]
-    methods = ["temporal-model"]
+    # methods = ["full-Hybrid", "KGE-only", "text-only", "path-only", "text-KGE-Hybrid", "text-path-Hybrid", "KGE-path-Hybrid","temporal-model"]
+    methods = ["KGE-only"]
     df_test = pd.DataFrame()
     df_train = pd.DataFrame()
     for cls in methods:
@@ -135,12 +139,11 @@ for cc in clss:
 
         model, frm = select_model(args)
 
-        dirs = os.listdir(os.path.dirname(os.path.abspath("dataset_TP")) + "/dataset_TP/HYBRID_Storage/")
+        dirs = os.listdir(os.path.dirname(os.path.abspath("dataset")) + "/dataset/HYBRID_Storage/")
 
         for flder in dirs:
-        # flder = "2022-02-11 10:53:39.443146"
-            chkpnts = os.listdir(os.path.dirname(os.path.abspath(
-                "dataset_TP")) + "/dataset_TP/HYBRID_Storage/" + flder)
+            flder = "2024-01-17 19:36:13.553875"
+            chkpnts = os.listdir(os.path.dirname(os.path.abspath("dataset_TP")) + "/dataset_TP/HYBRID_Storage/" + flder)
             for chk in chkpnts:
                 cc_change = cc
                 if cc.__contains__("/"):

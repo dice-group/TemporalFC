@@ -30,7 +30,7 @@ dependencies:
     - threadpoolctl==2.1.0
     - torch==1.8.0
     - typing-extensions==3.7.4.3
-    - sentence-transformers==2.1.0
+    - sentence-transformers==2.2.2
     - pandas==1.4.0
     - pytorch_lightning==1.5.9
     - matplotlib==3.5.0
@@ -39,3 +39,5 @@ dependencies:
 #if cuda issue with pytorch following command is needed in extra to execute seperately
 #pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
 prefix: /home/anaconda3/envs/tfc
+
+

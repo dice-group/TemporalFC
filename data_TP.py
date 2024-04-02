@@ -2,100 +2,70 @@ from torch.utils.data import DataLoader, random_split
 import numpy as np
 from copy import deepcopy
 import pickle
-# from main import argparse_default
+import pandas as pd
 import torch
 import os
+
 import random
 class Data:
+
     def __init__(self, args=None):
+        neg_data_type = args.negative_triple_generation
         data_dir = args.path_dataset_folder
         emb_typ = args.emb_type
+        valid_ratio = args.valid_ratio
         selected_dataset_data_dir = data_dir+str(args.eval_dataset).lower()+"/"
-        tmp_emb_folder = data_dir + str(args.eval_dataset).lower()+"/temporal_embeddings/"
-        property_split = args.prop
-        if args.eval_dataset == "Yago3K":
-            args.ids_only = True
+        tmp_emb_folder = data_dir + str(args.eval_dataset).lower()+"/embeddings/"
         ids_only = args.ids_only
+
+
         # Quick workaround as we happen to have duplicate triples.
         # None if load complete data, otherwise load parts of dataset with folders in wrong directory.
         # emb_folder = ""
-        if ids_only == False:
-            if str(args.eval_dataset).lower().__contains__("dbpedia124k"):
-                mapped_entities =  self.get_mapped_entities(selected_dataset_data_dir,file_name="map_final")
-            if str(args.eval_dataset).lower().__contains__("dbpedia124k") and property_split != "None":
-                self.train_set = list((self.load_data(selected_dataset_data_dir + "train/properties/correct/", data_type=property_split)))
-                self.test_set = list((self.load_data(selected_dataset_data_dir + "test/properties/correct/", data_type=property_split)))
-                self.train_set_time = list((self.load_data_with_time(selected_dataset_data_dir + "train/", data_type="train_original", mapped_entities=mapped_entities,prop=property_split)))
-                self.test_set_time = list((self.load_data_with_time(selected_dataset_data_dir + "test/", data_type="test_original", mapped_entities=mapped_entities,prop=property_split)))
-                self.train_set_time_final = self.update_and_match_triples_start(self, selected_dataset_data_dir, "train", "properties/correct/"+property_split+"_train_with_time_final.txt",
-                                                                                self.train_set, self.train_set_time)
-                self.test_set_time_final = self.update_and_match_triples_start(self, selected_dataset_data_dir, "test", "properties/correct/"+property_split+"_test_with_time_final.txt",
-                                                                               self.test_set, self.test_set_time)
-            elif str(args.eval_dataset).lower().__contains__("dbpedia124k"): #bpdp_dataset == True:
-                self.train_set = list((self.load_data(selected_dataset_data_dir+"train/" , data_type="train")))
-                self.test_set = list((self.load_data(selected_dataset_data_dir+"test/" , data_type="test")))
-                self.train_set_time = list((self.load_data_with_time(selected_dataset_data_dir + "train/", data_type="train_original", mapped_entities =  mapped_entities)))
-                self.test_set_time = list((self.load_data_with_time(selected_dataset_data_dir + "test/", data_type="test_original", mapped_entities =  mapped_entities)))
-                self.train_set_time_final = self.update_and_match_triples_start(self,selected_dataset_data_dir,"train","train_with_time_final.txt",
-                                                                                self.train_set, self.train_set_time)
-                self.test_set_time_final = self.update_and_match_triples_start(self,selected_dataset_data_dir,"test","test_with_time_final.txt",
-                                                                               self.test_set, self.test_set_time)
-            elif str(args.eval_dataset).lower().__contains__("dbpedia5") or str(args.eval_dataset).lower().__contains__("yago3k"):
-                self.train_set = list((self.load_data(selected_dataset_data_dir + "train/", data_type="train")))
-                self.test_set = list((self.load_data(selected_dataset_data_dir + "test/", data_type="test")))
-                self.train_set_time = list((self.load_data_with_time(selected_dataset_data_dir + "train/", data_type="train_original")))
-                self.test_set_time = list((self.load_data_with_time(selected_dataset_data_dir + "test/", data_type="test_original")))
-                self.train_set_time_final = self.update_and_match_triples_start(self, selected_dataset_data_dir, "train", "train_with_time_final.txt",
-                                                                                self.train_set, self.train_set_time)
-                self.test_set_time_final = self.update_and_match_triples_start(self, selected_dataset_data_dir, "test", "test_with_time_final.txt",
-                                                                               self.test_set, self.test_set_time)
+        if args.model == "KGE-only":
+            self.process_KGE_only_data(selected_dataset_data_dir, args)
 
-            else:
-                print("please specify a valid dataset")
-                exit(1)
+        elif ids_only == False:
+            self.train_set_time_final = list((self.load_data(selected_dataset_data_dir + "train/", data_type="train")))
+            self.test_set_time_final = list((self.load_data(selected_dataset_data_dir + "test/", data_type="test")))
 
-            split = "" if (property_split == 'None') else "correct/"+property_split
-            # factcheck predictions on train and test data
-            if str(args.eval_dataset).lower().__contains__("dbpedia124k") and property_split != "None":
-                self.train_set_veracity = list(
-                    (self.load_data(selected_dataset_data_dir + "factcheck_veracity_scores/properties/train/" + split, data_type="", pred=True)))
-                self.test_set_pred = list(
-                    (self.load_data(selected_dataset_data_dir + "factcheck_veracity_scores/properties/test/" + split, data_type="", pred=True)))
-            elif str(args.eval_dataset).lower().__contains__("dbpedia124k"):
-                self.train_set_veracity = list(
-                    (self.load_data(selected_dataset_data_dir+"factcheck_veracity_scores/"+split, data_type="train_pred", pred=True)))
-                self.test_set_pred = list(
-                    (self.load_data(selected_dataset_data_dir+"factcheck_veracity_scores/"+split, data_type="test_pred", pred=True)))
-
-            # self.train_set_time_final = self.update_and_match_triples_start(self,selected_dataset_data_dir,"train","train_with_time_final",self.train_set, self.train_set_time)
+            self.test_set_time_final, self.valid_set_time_final = self.generate_test_valid_set(self,
+                                                                                               self.test_set_time_final, valid_ratio)
             if args.include_veracity == True:
-                self.train_set_pred_final = self.update_and_match_triples_start(self,selected_dataset_data_dir,"factcheck_veracity_scores","final_train_pred.txt",
-                                                                                self.train_set_veracity, self.train_set_time, properties_split = property_split,veracity=True)
-                self.test_set_pred_final = self.update_and_match_triples_start(self,selected_dataset_data_dir,"factcheck_veracity_scores","final_test_pred.txt",
-                                                                               self.test_set_pred, self.test_set_time, properties_split = property_split, veracity=True)
-                # second time updating time array so no need to swap the sub and objects for negative triples(they are already inside), so veracity = true is fine
-                self.train_set_time_final = self.update_match_triples(data_set1=self.train_set_time_final, data_set2=self.train_set_pred_final, veracity=True, final=True)
-                self.test_set_time_final = self.update_match_triples(data_set1=self.test_set_time_final, data_set2=self.test_set_pred_final, veracity=True, final=True)
-                # check if prediction results and the train and test files are not equal size because we  have to check based on index the veracity scores (opposite check?)
-                self.train_set_pred_final = self.check_if_not_equal_size(self.train_set_pred_final,self.train_set_time_final )
-                self.test_set_pred_final = self.check_if_not_equal_size(self.test_set_pred_final, self.test_set_time_final)
+                # factcheck predictions on train and test data. Should be added here before: 'data_TP/dbpedia124k/factcheck_veracity_scores/train_pred'
+                self.train_set_pred = list((self.load_data(selected_dataset_data_dir + "train/",
+                                        data_type="train_v_scores.txt", pred=True)))
+                self.test_set_pred = list((self.load_data(selected_dataset_data_dir + "test/",
+                                        data_type="test_v_scores.txt", pred=True)))
+
+                self.test_set_pred, self.valid_set_pred = self.generate_test_valid_set(self, self.test_set_pred, valid_ratio)
+
             # generate test and validation sets
-            self.test_set, self.valid_set = self.generate_test_valid_set(self, self.test_set)
-            self.test_set_time_final, self.valid_set_time_final = self.generate_test_valid_set(self, self.test_set_time_final)
+            # self.test_set, self.valid_set = self.generate_test_valid_set(self, self.test_set)
 
-            if args.include_veracity == True:
-                self.test_set_pred, self.valid_set_pred = self.generate_test_valid_set(self, self.test_set_pred)
-                self.test_set_pred_final, self.valid_set_pred_final = self.generate_test_valid_set(self, self.test_set_pred_final)
 
+
+            ###########################################################################################################
+            ##########################################################################################################
+            ##################SENTENCE WORLD###########################################################
+
+            self.emb_sentences_train = pd.read_csv(selected_dataset_data_dir + "train/" + "trainSE.csv", sep=",").iloc[:, 3:]
+            self.emb_sentences_test = pd.read_csv(selected_dataset_data_dir + "test/" + "testSE.csv", sep=",").iloc[:, 3:]
+            self.emb_sentences_test, self.emb_sentences_valid = self.generate_test_valid_sentence_set(self, self.emb_sentences_test, valid_ratio)
+            #############################################################################################################
+            ##############################################################################################################
             # get all entities and relations
             # self.data = self.train_set + list(self.test_set) + list(self.valid_set)
-            self.data = self.train_set_time + self.test_set_time
+            self.data = self.train_set_time_final + self.test_set_time_final + self.valid_set_time_final
             self.entities = self.get_entities(self.data)
 
                    # self.relations = list(set(self.get_relations(self.train_set) + self.get_relations(self.test_set)))
             self.relations = self.get_relations(self.data)
-            self.times = self.get_times(self.data)
 
+            self.times = self.get_times(self.data)
+            # self.save_all_resources(self.entities, selected_dataset_data_dir, is_entity=True)
+            # self.save_all_resources(self.relations, selected_dataset_data_dir, is_entity=False)
+            # exit(1)
             self.idx_ent_dict = dict()
             self.idx_rel_dict = dict()
             self.idx_time_dict = dict()
@@ -109,18 +79,21 @@ class Data:
                 self.idx_time_dict[i] = len(self.idx_time_dict)
 
             if args.include_veracity == True:
-                self.veracity_train = self.get_veracity_data(self, self.train_set_pred_final)
-                self.veracity_test = self.get_veracity_data(self, self.test_set_pred_final)
-                self.veracity_valid = self.get_veracity_data(self, self.valid_set_pred_final)
+                self.copaal_veracity_train = self.get_veracity_data(self, self.train_set_pred)
+                self.copaal_veracity_test = self.get_veracity_data(self, self.test_set_pred)
+                self.copaal_veracity_valid = self.get_veracity_data(self, self.valid_set_pred)
 
 
-            self.emb_entities = self.get_embeddings(tmp_emb_folder+emb_typ+'/','entity.pkl')
-            self.emb_relation = self.get_embeddings(tmp_emb_folder+emb_typ+'/','relation.pkl')
-            self.emb_time = self.get_embeddings(tmp_emb_folder+emb_typ+'/','time.pkl')
+            self.emb_entities = self.get_embeddings(tmp_emb_folder+emb_typ+'/','all_entities_embeddings_final.csv')
+            self.emb_relation = self.get_embeddings(tmp_emb_folder+emb_typ+'/','all_relations_embeddings_final.csv')
+            if str(args.model).__contains__("temporal"):
+               self.emb_time = self.get_embeddings(tmp_emb_folder+emb_typ+'/','time.pkl')
 
             self.num_entities = len(self.emb_entities)
             self.num_relations = len(self.emb_relation)
-            self.num_times = len(self.emb_time)
+            self.num_times = 0
+            if str(args.model).__contains__("temporal"):
+                self.num_times = len(self.emb_time)
 
             if args.negative_triple_generation =="corrupted-time-based":
                 self.train_set_time_final = self.generate_negative_triples(self.train_set_time_final)
@@ -132,14 +105,15 @@ class Data:
                 self.test_set_time_final = self.generate_only_true_triples(self.test_set_time_final)
             self.idx_train_set = []
             i = 0
+            sent_i = 0
             len_train = len(self.train_set_time_final)
             for (s, p, o, time, label) in self.train_set_time_final:
                 s = str(s).replace("<http://dbpedia.org/resource/", "")[:-1]
                 p = str(p).replace("<http://dbpedia.org/ontology/", "")[:-1].replace("Of","")
                 o = str(o).replace("<http://dbpedia.org/resource/", "")[:-1]
                 if self.idx_ent_dict.keys().__contains__(s) and self.idx_rel_dict.keys().__contains__(p) and self.idx_ent_dict.keys().__contains__(o):
-                    idx_s, idx_p, idx_o, idx_t, label = self.idx_ent_dict[s], self.idx_rel_dict[p], self.idx_ent_dict[o], self.idx_time_dict[time], label
-                    if label == 'True':
+                    idx_s, idx_p, idx_o, idx_t,  label = self.idx_ent_dict[s], self.idx_rel_dict[p], self.idx_ent_dict[o], self.idx_time_dict[time], label
+                    if label == 'True' or label == 1:
                         label = 1
                     else:
                         label = 0
@@ -153,13 +127,15 @@ class Data:
                         if ((item[0]==int(idx_s)) and (item[1]==int(idx_p)) and (item[2]==int(idx_o)) and (item[3]==int(idx_t))):
                             idx_t = (int(idx_t) + 1) if ((int(idx_t)+1) < self.num_times) else 0
                         ver = item[4]
-                    self.idx_train_set.append([int(idx_s), int(idx_p), int(idx_o),int(idx_t), ver, label])
+                    self.idx_train_set.append([int(idx_s), int(idx_p), int(idx_o),int(idx_t), sent_i, ver, label])
                 else:
                     print("check:"+s + ","+o)
                 i = i + 1
+                sent_i = sent_i + 1
 
             self.idx_valid_set = []
             j = 0
+            sent_i = 0
             len_valid = len(self.valid_set_time_final)
             for (s, p, o, time, label) in self.valid_set_time_final:
                 s = str(s).replace("<http://dbpedia.org/resource/", "")[:-1]
@@ -167,7 +143,7 @@ class Data:
                 o = str(o).replace("<http://dbpedia.org/resource/", "")[:-1]
                 if self.idx_ent_dict.keys().__contains__(s) and  self.idx_rel_dict.keys().__contains__(p) and self.idx_ent_dict.keys().__contains__(o):
                     idx_s, idx_p, idx_o, idx_t, label = self.idx_ent_dict[s], self.idx_rel_dict[p], self.idx_ent_dict[o],self.idx_time_dict[time], label
-                    if label == 'True':
+                    if label == 'True' or label == 1:
                         label = 1
                     else:
                         label = 0
@@ -181,13 +157,15 @@ class Data:
                         if ((item[0]==int(idx_s)) and (item[1]==int(idx_p)) and (item[2]==int(idx_o)) and (item[3]==int(idx_t))):
                             idx_t = (int(idx_t) + 1) if ((int(idx_t)+1) < self.num_times) else 0
                         ver = item[4]
-                    self.idx_valid_set.append([int(idx_s), int(idx_p), int(idx_o),int(idx_t), ver, label])
+                    self.idx_valid_set.append([int(idx_s), int(idx_p), int(idx_o),int(idx_t), sent_i, ver, label])
                 else:
                     print("check:" + s + "," + o)
                 j = j + 1
+                sent_i = sent_i + 1
 
             self.idx_test_set = []
             k = 0
+            sent_i = 0
             len_test = len(self.test_set_time_final)
             for (s, p, o, time, label) in self.test_set_time_final:
                 s = str(s).replace("<http://dbpedia.org/resource/", "")[:-1]
@@ -195,7 +173,7 @@ class Data:
                 o = str(o).replace("<http://dbpedia.org/resource/", "")[:-1]
                 if self.idx_ent_dict.keys().__contains__(s) and  self.idx_rel_dict.keys().__contains__(p) and self.idx_ent_dict.keys().__contains__(o):
                     idx_s, idx_p, idx_o, idx_t, label = self.idx_ent_dict[s], self.idx_rel_dict[p], self.idx_ent_dict[o],self.idx_time_dict[time], label
-                    if label == 'True':
+                    if label == 'True' or label == 1:
                         label = 1
                     else:
                         label = 0
@@ -209,10 +187,11 @@ class Data:
                         if ((item[0]==int(idx_s)) and (item[1]==int(idx_p)) and (item[2]==int(idx_o)) and (item[3]==int(idx_t))):
                             idx_t = (int(idx_t) + 1) if ((int(idx_t)+1) < self.num_times) else 0
                         ver = item[4]
-                    self.idx_test_set.append([int(idx_s), int(idx_p), int(idx_o),int(idx_t), ver, label])
+                    self.idx_test_set.append([int(idx_s), int(idx_p), int(idx_o),int(idx_t), sent_i, ver, label])
                 else:
                     print("check:" + s + "," + o)
                 k = k + 1
+                sent_i = sent_i + 1
         else:
             # self.idx_ent_dict = self.get_ids_dict(selected_dataset_data_dir+"entities")
             # self.idx_rel_dict = self.get_ids_dict(selected_dataset_data_dir+"relations")
@@ -226,24 +205,143 @@ class Data:
             self.idx_train_set = self.get_ids_dict(selected_dataset_data_dir+"train/train")
             self.idx_test_set = self.get_ids_dict(selected_dataset_data_dir+"test/test")
             self.idx_valid_set = self.get_ids_dict(selected_dataset_data_dir+"test/valid")
-    def generate_negative_triples(self, data):
+
+    # Function to find a key by its value in a dictionary
+    def process_KGE_only_data(self, selected_dataset_data_dir, args, valid_ratio):
+        self.idx_train_set = []
+        self.idx_test_set = []
+        self.idx_valid_set = []
+
+        # reading train and test sets
+        self.train_set = list(
+            (self.load_data(selected_dataset_data_dir + "train/", data_type="train")))
+        self.test_set = list(
+            (self.load_data(selected_dataset_data_dir + "test/", data_type="test")))
+        self.test_set, self.valid_set = self.generate_test_valid_set(self, self.test_set, valid_ratio)
+        # negative triples generation
+        if args.negative_triple_generation != "corrupted-time-based":
+            self.train_set = self.generate_negative_triples(self.train_set, "corrupted-triple-based")
+            self.test_set = self.generate_negative_triples(self.test_set, "corrupted-triple-based")
+            self.valid_set = self.generate_negative_triples(self.valid_set, "corrupted-triple-based")
+
+        self.idx_ent_dict = dict()
+        self.idx_rel_dict = dict()
+
+        self.data = self.train_set + self.test_set + self.valid_set
+        self.entities = self.get_entities(self.data)
+        self.relations = self.get_relations(self.data)
+        # self.save_all_resources(self.entities, selected_dataset_data_dir, is_entity=True)
+        # self.save_all_resources(self.relations, selected_dataset_data_dir, is_entity=False)
+        # exit(1)
+        # Generate integer mapping
+        for i in self.entities:
+            self.idx_ent_dict[i] = len(self.idx_ent_dict)
+        for i in self.relations:
+            self.idx_rel_dict[i] = len(self.idx_rel_dict)
+
+        self.emb_entities = self.get_embeddings_from_csv(selected_dataset_data_dir + 'embeddings/'+args.emb_type,
+                                                         '/entities_embeddings.csv', self.entities)
+        self.emb_relation = self.get_embeddings_from_csv(selected_dataset_data_dir + 'embeddings/'+args.emb_type,
+                                                         '/relations_embeddings.csv', self.relations)
+
+        self.num_entities = len(self.emb_entities)
+        self.num_relations = len(self.emb_relation)
+        self.num_times = 0
+
+        # creating ids of the train andtest sets
+        i = 0
+        for (s, p, o, label) in self.train_set:
+            if self.idx_ent_dict.keys().__contains__(s) and self.idx_rel_dict.keys().__contains__(
+                    p) and self.idx_ent_dict.keys().__contains__(o):
+                idx_s, idx_p, idx_o, label = self.idx_ent_dict[s], self.idx_rel_dict[p], self.idx_ent_dict[o], label
+                if label == 'True' or label == 1:
+                    label = 1
+                else:
+                    label = 0
+                ver = i
+                self.idx_train_set.append([int(idx_s), int(idx_p), int(idx_o), 0, ver, label])
+            else:
+                print("check:" + s + "," + o)
+            i = i + 1
+        i = 0
+        for (s, p, o, label) in self.test_set:
+            if self.idx_ent_dict.keys().__contains__(s) and self.idx_rel_dict.keys().__contains__(
+                    p) and self.idx_ent_dict.keys().__contains__(o):
+                idx_s, idx_p, idx_o, label = self.idx_ent_dict[s], self.idx_rel_dict[p], self.idx_ent_dict[o], label
+                if label == 'True' or label == 1:
+                    label = 1
+                else:
+                    label = 0
+                ver = i
+                self.idx_test_set.append([int(idx_s), int(idx_p), int(idx_o), 0, ver, label])
+            else:
+                print("check:" + s + "," + o)
+            i = i + 1
+        i = 0
+        for (s, p, o, label) in self.valid_set:
+            if self.idx_ent_dict.keys().__contains__(s) and self.idx_rel_dict.keys().__contains__(
+                    p) and self.idx_ent_dict.keys().__contains__(o):
+                idx_s, idx_p, idx_o, label = self.idx_ent_dict[s], self.idx_rel_dict[p], self.idx_ent_dict[o], label
+                if label == 'True' or label == 1:
+                    label = 1
+                else:
+                    label = 0
+                ver = i
+                self.idx_valid_set.append([int(idx_s), int(idx_p), int(idx_o), 0, ver, label])
+            else:
+                print("check:" + s + "," + o)
+            i = i + 1
+        print("loading train and test is done")
+
+    def get_key(self,dictionary, value):
+        for key, val in dictionary.items():
+            if val == value:
+                return key
+        return None
+    def generate_negative_triples(self, data, type="time-based"):
+
         data2 = []
         data_final = []
         i =0
-        times = []
-        for (s, p, o, time, label) in data:
-            if label == 'True':
-                times.append(time)
-                data2.append([s, p, o, time, label])
-            i = i + 1
-        random.shuffle(times)
-        data3 = []
-        for j in range(len(data2)):
-            item = data2.__getitem__(j)
-            tim = times.__getitem__(j)
-            data3.append([item[0],item[1],item[2],tim,'False'])
+        if type=="corrupted-time-based":
+            times = []
+            for (s, p, o, time, label) in data:
+                if label == 'True':
+                    times.append(time)
+                    data2.append([s, p, o, time, label])
+                i = i + 1
+            random.shuffle(times)
+            data3 = []
+            for j in range(len(data2)):
+                item = data2.__getitem__(j)
+                tim = times.__getitem__(j)
+                data3.append([item[0],item[1],item[2],tim,'False'])
 
-        data_final = data2 + data3
+            data_final = data2 + data3
+        else:
+            relations =  []
+            i = 0
+            for (s, p, o, label) in data:
+                if label == 'True' or label == 1:
+                    relations.append(p)
+                    data2.append([s, p, o, label])
+                i = i + 1
+            relations = set(relations)
+            idx_relations = dict()
+            for rel in relations:
+                idx_relations[rel] = len(idx_relations)
+
+            data3 = []
+            for j in range(len(data2)):
+                item = data2.__getitem__(j)
+                rr =  idx_relations[item[1]]
+                new_idx = 0
+                if rr < len(idx_relations)-1:
+                    new_idx = rr+1
+                new_r = self.get_key(idx_relations, new_idx)
+                data3.append([item[2], new_r, item[0], 0])
+
+            data_final = data2 + data3
         # data_final.append(data3)
         return data_final
 
@@ -258,6 +356,10 @@ class Data:
             if label == 'True':
                 times.append(time)
                 data_final.append([s, p, o, time, label])
+            if label == 1:
+                times.append(time)
+                data_final.append([s, p, o, time, label])
+
             i = i + 1
 
         # data_final.append(data3)
@@ -268,10 +370,11 @@ class Data:
         embeddings_train = dict()
         i = 0
         for train in train_emb:
-            embeddings_train[i] = train[3]
+            embeddings_train[i] = float(str(train[3]).replace(".\n",""))
             i += 1
 
-        return embeddings_train.values()
+        return pd.DataFrame(embeddings_train.values())
+
     @staticmethod
     def update_and_match_triples_start(self, selected_dataset_data_dir, type, file_name, data_set1, data_set2,  properties_split = None, veracity = False):
         if veracity==False:
@@ -285,7 +388,7 @@ class Data:
                 self.save_triples(selected_dataset_data_dir, type+"/"+file_name, self.set_time_final)
         else:
             tt = "properties/train/" if (file_name.__contains__("train")) else "properties/test/"
-            split = "" if (properties_split=='None') else tt+"correct/" +properties_split + "_"
+            split = "" if (properties_split==None) else tt+"correct/" +properties_split + "_"
             if (os.path.exists(selected_dataset_data_dir + type+ "/"+ split+ file_name)):
                 self.set_time_final = list(self.load_data(selected_dataset_data_dir + type+"/"+split , data_type=str(file_name).replace(".txt",""),pred=True))
             else:
@@ -314,8 +417,8 @@ class Data:
                 for item in triples:
                     f.write(""+str(item[0])+"\t"+str(item[1])+"\t"+str(item[2])+"\t"+str(item[3])+"\n")
     @staticmethod
-    def save_all_resources(list_all_entities, data_dir, sub_path, entities):
-        if entities:
+    def save_all_resources(list_all_entities, data_dir, sub_path="", is_entity=True):
+        if is_entity:
             with open(data_dir+sub_path+'all_entities.txt',"w") as f:
                 for item in list_all_entities:
                     f.write("%s\n" % item)
@@ -325,19 +428,30 @@ class Data:
                     f.write("%s\n" % item)
 
     @staticmethod
-    def generate_test_valid_set(self, test_set):
+    def generate_test_valid_set(self, test_set, valid_ratio):
         test_data = []
         valid_data = []
         i = 0
         sent_i = 0
         for data in test_set:
-            if i % 20 == 0:
+            if i % valid_ratio == 0:
                 valid_data.append(data)
             else:
                 test_data.append(data)
 
             i += 1
         return  test_data, valid_data
+    @staticmethod
+    def generate_test_valid_sentence_set(self, test_set, valid_ratio):
+        valid_indices = list(range(0, len(test_set), valid_ratio))  # Indices for validation set
+        all_indices = list(range(len(test_set)))
+
+        test_indices = [idx for idx in all_indices if idx not in valid_indices]  # Indices for test set
+
+        test_data = test_set.iloc[test_indices]  # Extract test set
+        valid_data = test_set.iloc[valid_indices]  # Extract validation set
+
+        return test_data, valid_data
     def get_ids_dict(self, dict_file_path):
         ids_dict = dict()
         data = []
@@ -364,12 +478,14 @@ class Data:
         try:
             data = []
             if pred == False:
-                with open("%s%s.txt" % (data_dir, data_type), "r") as f:
+                with open("%s%s" % (data_dir, data_type), "r") as f:
                     for datapoint in f:
                         datapoint = datapoint.split("\t")
                         if len(datapoint) == 4:
                             s, p, o, label = datapoint
-                            if label == 'True':
+                            if label == '.\n': # TODO if false triples are also provided then label could be false or??
+                                label = 1
+                            elif label == 'True' or label == 1 or label == '1':
                                 label = 1
                             else:
                                 label = 0
@@ -383,33 +499,49 @@ class Data:
                                 label = 0
                             data.append((s, p, 'DUMMY', label))
                         elif len(datapoint) == 5:
-                            s, p, o, time, label = datapoint
-                            assert label == 'True' or label == 'False'
-                            if label == 'True':
-                                label = 1
+                            if datapoint[4]==".\n":
+                                s, p, o, label, dummy = datapoint
+                                label = label.replace("\n", "")
+                                if label == 'True' or label == '1.0' or label == 1.0 or label == '1' or label == 1:
+                                    label = 1
+                                else:
+                                    label = 0
+                                data.append((s, p, o,"N/A", label))
                             else:
-                                label = 0
-                            data.append((s, p, o, time, label))
+                                s, p, o, time, label = datapoint
+                                label=label.replace("\n","")
+                                assert label == 'True' or label == 'False'
+                                if label == 'True' or label == '1' or label == 1:
+                                    label = 1
+                                else:
+                                    label = 0
+                                data.append((s, p, o, time, label))
                         else:
                             raise ValueError
             else:
-                with open("%s%s.txt" % (data_dir, data_type), "r") as f:
+                with open("%s%s" % (data_dir, data_type), "r") as f:
                     for datapoint in f:
                         datapoint = datapoint.split('\t')
                         if len(datapoint) == 4:
                             s, p, o, label = datapoint
-                            data.append((s, p, o, label))
+                            label = str(label).replace(".\n", "")
+                            label = str(label).replace("\n","")
+                            data.append((s, p, o, float(label)))
                         elif len(datapoint) == 3:
                             s, p, label = datapoint
-                            data.append((s, p, 'DUMMY', label))
+                            label = str(label).replace("\n", "")
+                            data.append((s, p, 'DUMMY', float(label)))
                         elif len(datapoint) == 5:
                             s, p, o, time, label = datapoint
+                            label = str(label).replace("\n", "")
                             if label=="." and str(time).__contains__("^<http://www.w3.org/2001/XMLSchema#double>"):
                                 label = time
                                 label = str(label).replace("\"^^<http://www.w3.org/2001/XMLSchema#double>", "")
-                                data.append((s, p, o, label))
+                                data.append((s, p, o, float(label)))
+                            elif label=="." and (str(time).startswith('0.') or time == '1.0'):
+                                data.append((s, p, o, float(time)))
                             else:
-                                data.append((s, p, o, time, label))
+                                data.append((s, p, o, time, float(label)))
                         else:
                             raise ValueError
         except FileNotFoundError as e:
@@ -563,27 +695,37 @@ class Data:
         return times
     # / home / umair / Documents / pythonProjects / HybridFactChecking / Embeddings / ConEx_dbpedia
     @staticmethod
+    def get_embeddings_from_csv(path,name, order):
+
+        embd = pd.read_csv("%s%s" % (path, name))
+
+        embd['Key'] = pd.Categorical(embd['Key'], categories=order, ordered=True)
+
+        # Sort the DataFrame based on the 'Fruits' column
+        sorted_df = embd.sort_values(by='Key')
+
+        return sorted_df.iloc[:, 1:]
+    @staticmethod
     def get_embeddings(path,name):
         # embeddings = dict()
         # print("%s%s.txt" % (path,name))
-        embd = torch.load("%s%s" % (path,name),map_location=torch.device('cpu'))
+        if name.endswith(".pkl"):
+            embd = torch.load("%s%s" % (path,name),map_location=torch.device('cpu'))
         # old_data = pickle.load(file)
         # with open("%s%s" % (path,name), 'rb') as f:
         #     data = pickle.load(f)
-        # with open("%s%s" % (path,name), "r") as f:
-        #     for datapoint in f:
-        #         if datapoint.startswith("0	 1	 2	 3	 4	 5	 6	 7	 8"):
-        #             continue
-        #         data = datapoint.split('>\t')
-        #         if len(data)==1:
-        #             print("stoped: getting embeddings function")
-        #             exit(1)
-        #         if len(data) > 1:
-        #             data2 = data[0]+">",data[1].split('\t')
-        #             # test = data2[0].replace("\"","").replace("_com",".com").replace("Will-i-am","Will.i.am").replace("Will_i_am","Will.i.am")
-        #             # test = data2[0].replace("\"","")
-        #             if data2[0] in idxs:
-        #                 embeddings[data2[0]] = data2[1]
+            return embd.weight
+        elif name.endswith(".csv"):
+            embd = pd.read_csv("%s%s" % (path,name), sep=",")
+            last_column_name = embd.columns[-1]
+            if str(embd[last_column_name]).__contains__("]"):
+                embd[last_column_name] = embd[last_column_name].str.replace(']', '', regex=False)
+            return embd.iloc[:, 1:]
+        else:
+            print("invalid embeddings format. Please use .csv or .pkl fomat")
+            raise ValueError
+
+
         # for emb in idxs:
         #     if emb not in embeddings.keys():
         #         print("this is missing in embeddings file:"+ emb)

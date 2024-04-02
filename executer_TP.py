@@ -28,16 +28,6 @@ class Execute_TP:
         args = preprocesses_input_args(args)
         sanity_checking_with_arguments(args)
         self.args = args
-        if args.eval_dataset=="BPDP":
-            bpdp = True
-            args.path_dataset_folder += "/data_TP/bpdp"
-
-
-        # if args.model == "full-Hybrid":
-        #     args.path_dataset_folder += '/data/copaal'
-        #     hybrid_app = True
-
-
         # 1. Create an instance of KG.
         self.args.dataset = Data(args=args)
 
@@ -225,26 +215,26 @@ class Execute_TP:
         self.logger.info(info)
         self.logger.info(f'Num of triples {len(triple_idx)}')
 
-        X_test = np.array(triple_idx)[:, :5]
-        y_test = np.array(triple_idx)[:, -3]
+        X_test = np.array(triple_idx)[:, :6]
+        y_test = np.array(triple_idx)[:, -1]
 
         # label = model.time_embeddings(y_test)
         label = y_test
         X_test_tensor = torch.Tensor(X_test).long()
         Y_test_tensor = torch.Tensor(y_test).long()
-        idx_s, idx_p, idx_o, t_idx, v_data = X_test_tensor[:, 0], X_test_tensor[:, 1], X_test_tensor[:, 2], X_test_tensor[:, 3], X_test_tensor[:, 4]
+        idx_s, idx_p, idx_o, t_idx, s_idx, v_data = X_test_tensor[:, 0], X_test_tensor[:, 1], X_test_tensor[:, 2], X_test_tensor[:, 3], X_test_tensor[:, 4], X_test_tensor[:, 5]
         # 2. Prediction score
         if info.__contains__("Test"):
-            prob = model.forward_triples(idx_s, idx_p, idx_o, t_idx, v_data,type="test")
+            prob = model.forward_triples(idx_s, idx_p, idx_o, t_idx, s_idx, v_data,type="test")
         else:
-            prob = model.forward_triples(idx_s, idx_p, idx_o, t_idx, v_data)
+            prob = model.forward_triples(idx_s, idx_p, idx_o, t_idx, s_idx, v_data)
         # pred = (prob > 0.5).float()
         pred = prob.data.detach().numpy()
         max_pred = np.argmax(pred, axis=1)
         idx, sort_pred= torch.sort(prob,dim=1,descending=True)
 
-        test_mrr = self.mrr_score(label, sort_pred)
-        self.logger.info(test_mrr)
+        # test_mrr = self.mrr_score(label, sort_pred)
+        # self.logger.info(test_mrr)
         self.logger.info( accuracy_score(max_pred, label))
         # self.logger.info(classification_report(max_pred, label))
 

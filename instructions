@@ -1,0 +1,14 @@
+1. Add the dataset folder in data_TP directory
+2. dataset folder should include "train", "test", "copaal_output" and "factcheck_output" and embeddings folders.
+3. all files should be in respective folder. test and train folder should contain test and train files without any extension (.nt/.txt).
+
+
+3. Generate sentence embeddings by running overall_process/generate_sentence_embeddings_from_FactCheck_output.py file
+4. Generate copaal veracity scores output file by running overall_process/generate_veracity_scores_file_from_copaal_output.py file
+5. To sort and exclude missing triples/embeddings/veracity_scores/factcheck results you should run overall_process/sort_and_exculde_incomplete_triples.py.
+After runnning it unzip the file which is generated.
+
+5. To generate embeddings, feel free to use utils/getEmbeddingsFromAPIcall.py class.
+You may want to modify the service that you want to use or generate embeddings and which dataset you want to use add in list.
+If some entity or relation embeddings are missing, then you need to delete the respective triples from the file. (check missing.txt file)
+if some entity or relation embeddings are missing, you should run overall_process/sort_and_exculde_incomplete_triples.py again.
