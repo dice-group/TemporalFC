@@ -1,6 +1,7 @@
-typ = 'test'
-data_dir ='/home/umair/Documents/pythonProjects/testt/dbpedia124k/dbpedia124k/'+typ+'/'
-with open(data_dir+typ+'2.txt', 'r') as input_file, open(data_dir+typ, 'w') as output_file:
+typ = 'train'
+path = '/local/upb/users/u/uqudus/profiles/unix/cs/TemporalFC/TemporalFC/data_TP/dbpedia124k/'
+data_dir = path+typ+'/'
+with open(data_dir+typ+'2.txt', 'r') as input_file, open(data_dir+typ+'3', 'w') as output_file:
     for line in input_file:
         parts = line.strip().split('\t')
         # Extract the last part after '/' and '>' from each field

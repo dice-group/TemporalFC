@@ -106,7 +106,7 @@ class Execute_TP:
         checkpoint = ModelCheckpoint(
             monitor="avg_val_loss_per_epoch",
             dirpath=self.storage_path,
-            filename="sample-{"+(str(mdl).lower())+"}--{"+(str(pth).lower())+"}--"+self.args.emb_type+"-{epoch:02d}-{val_loss:.3f}",
+            filename="sample-{"+(str(mdl).lower())+"}--{"+(str(pth).lower())+"}--"+(str(self.args.emb_type).lower())+"--"+(str(self.args.negative_triple_generation).lower())+"--{epoch:02d}-{val_loss:.3f}",
             save_top_k=1,
             mode="min",
         )
@@ -115,9 +115,9 @@ class Execute_TP:
         # print(torch.cuda.device_count())
         if torch.cuda.is_available():
             self.trainer = pl.Trainer.from_argparse_args(self.args, plugins=DataParallelPlugin(),
-                                                     callbacks = [early_stopping_callback, checkpoint], gpus=torch.cuda.device_count())
+                                                     callbacks = [early_stopping_callback, checkpoint], gpus=1)
         else:
-            self.trainer = pl.Trainer.from_argparse_args(self.args, plugins=DataParallelPlugin(),
+            self.trainer = pl.Trainer.from_argparse_args(self.args,
                                                      callbacks = [early_stopping_callback, checkpoint])
         # 2. Check whether validation and test datasets are available.
         if self.args.dataset.is_valid_test_available():
@@ -135,10 +135,10 @@ class Execute_TP:
         """
         # 1. Select model and labelling : triple prediction.
         model, form_of_labelling = select_model(self.args)
-        # if not self.args.batch_size:
-        self.args.batch_size = int(len(self.args.dataset.idx_train_set) / 3) + 1
-        # if not self.args.batch_size:
-        self.args.val_batch_size = int(len(self.args.dataset.idx_valid_set) / 2) + 1
+        if not self.args.batch_size:
+            self.args.batch_size = int(len(self.args.dataset.idx_train_set) / 3) + 1
+        if not self.args.val_batch_size:
+            self.args.val_batch_size = int(len(self.args.dataset.idx_valid_set) / 2) + 1
 
         self.args.fast_dev_run=False
         self.args.accumulate_grad_batches = self.args.batch_size
@@ -235,7 +235,7 @@ class Execute_TP:
 
         # test_mrr = self.mrr_score(label, sort_pred)
         # self.logger.info(test_mrr)
-        self.logger.info( accuracy_score(max_pred, label))
+        # self.logger.info( accuracy_score(max_pred, label))
         # self.logger.info(classification_report(max_pred, label))
 
 

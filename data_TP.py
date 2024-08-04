@@ -10,12 +10,13 @@ import random
 class Data:
 
     def __init__(self, args=None):
-        neg_data_type = args.negative_triple_generation
+
         data_dir = args.path_dataset_folder
         emb_typ = args.emb_type
         valid_ratio = args.valid_ratio
         selected_dataset_data_dir = data_dir+str(args.eval_dataset).lower()+"/"
         tmp_emb_folder = data_dir + str(args.eval_dataset).lower()+"/embeddings/"
+        #TODO to be deleted and generalized it's logic later
         ids_only = args.ids_only
 
 
@@ -63,7 +64,7 @@ class Data:
             self.relations = self.get_relations(self.data)
 
             self.times = self.get_times(self.data)
-            # self.save_all_resources(self.entities, selected_dataset_data_dir, is_entity=True)
+            self.save_all_resources(self.entities, selected_dataset_data_dir, is_entity=True)
             # self.save_all_resources(self.relations, selected_dataset_data_dir, is_entity=False)
             # exit(1)
             self.idx_ent_dict = dict()
@@ -84,10 +85,14 @@ class Data:
                 self.copaal_veracity_valid = self.get_veracity_data(self, self.valid_set_pred)
 
 
-            self.emb_entities = self.get_embeddings(tmp_emb_folder+emb_typ+'/','all_entities_embeddings_final.csv')
-            self.emb_relation = self.get_embeddings(tmp_emb_folder+emb_typ+'/','all_relations_embeddings_final.csv')
             if str(args.model).__contains__("temporal"):
-               self.emb_time = self.get_embeddings(tmp_emb_folder+emb_typ+'/','time.pkl')
+                self.emb_entities = self.get_embeddings(tmp_emb_folder + emb_typ + '/','entity.pkl')
+                self.emb_relation = self.get_embeddings(tmp_emb_folder + emb_typ + '/','relation.pkl')
+                self.emb_time = self.get_embeddings(tmp_emb_folder+emb_typ+'/','time.pkl')
+            else:
+                self.emb_entities = self.get_embeddings(tmp_emb_folder + emb_typ + '/', 'all_entities_embeddings_final.csv')
+                self.emb_relation = self.get_embeddings(tmp_emb_folder + emb_typ + '/',
+                                                        'all_relations_embeddings_final.csv')
 
             self.num_entities = len(self.emb_entities)
             self.num_relations = len(self.emb_relation)
@@ -95,10 +100,23 @@ class Data:
             if str(args.model).__contains__("temporal"):
                 self.num_times = len(self.emb_time)
 
-            if args.negative_triple_generation =="corrupted-time-based":
-                self.train_set_time_final = self.generate_negative_triples(self.train_set_time_final)
-                self.valid_set_time_final = self.generate_negative_triples(self.valid_set_time_final)
-                self.test_set_time_final = self.generate_negative_triples(self.test_set_time_final)
+            if args.negative_triple_generation =="corrupted-time-based": # we have to duplicate the sentences because only time is currupted in this case..
+                # TODO for later
+                # concatinating sentence embeddings assumes that the first half are true examples.
+                self.train_set_time_final, count = self.generate_negative_triples(self.train_set_time_final,type=args.negative_triple_generation)
+                self.emb_sentences_train = self.emb_sentences_train[:count]
+                self.emb_sentences_train = pd.concat([self.emb_sentences_train, self.emb_sentences_train],
+                                                     ignore_index=True)
+                self.valid_set_time_final, count = self.generate_negative_triples(self.valid_set_time_final,type=args.negative_triple_generation)
+                self.emb_sentences_valid = self.emb_sentences_valid[:count]
+                self.emb_sentences_valid = pd.concat([self.emb_sentences_valid, self.emb_sentences_valid],
+                                                     ignore_index=True)
+
+                self.test_set_time_final, count = self.generate_negative_triples(self.test_set_time_final,type=args.negative_triple_generation)
+                self.emb_sentences_test = self.emb_sentences_test[:count]
+                self.emb_sentences_test = pd.concat([self.emb_sentences_test, self.emb_sentences_test],
+                                                     ignore_index=True)
+
             elif args.negative_triple_generation == "False":
                 self.train_set_time_final = self.generate_only_true_triples(self.train_set_time_final)
                 self.valid_set_time_final = self.generate_only_true_triples(self.valid_set_time_final)
@@ -220,9 +238,9 @@ class Data:
         self.test_set, self.valid_set = self.generate_test_valid_set(self, self.test_set, valid_ratio)
         # negative triples generation
         if args.negative_triple_generation != "corrupted-time-based":
-            self.train_set = self.generate_negative_triples(self.train_set, "corrupted-triple-based")
-            self.test_set = self.generate_negative_triples(self.test_set, "corrupted-triple-based")
-            self.valid_set = self.generate_negative_triples(self.valid_set, "corrupted-triple-based")
+            self.train_set, count = self.generate_negative_triples(self.train_set, "corrupted-triple-based")
+            self.test_set, count = self.generate_negative_triples(self.test_set, "corrupted-triple-based")
+            self.valid_set, count = self.generate_negative_triples(self.valid_set, "corrupted-triple-based")
 
         self.idx_ent_dict = dict()
         self.idx_rel_dict = dict()
@@ -302,20 +320,22 @@ class Data:
 
         data2 = []
         data_final = []
+        count_positve = 0
         i =0
         if type=="corrupted-time-based":
             times = []
             for (s, p, o, time, label) in data:
-                if label == 'True':
+                if label == 'True' or label == 1:
                     times.append(time)
-                    data2.append([s, p, o, time, label])
+                    data2.append([s, p, o, time, 1])
                 i = i + 1
+            count_positve = len(data2)
             random.shuffle(times)
             data3 = []
             for j in range(len(data2)):
                 item = data2.__getitem__(j)
                 tim = times.__getitem__(j)
-                data3.append([item[0],item[1],item[2],tim,'False'])
+                data3.append([item[0],item[1],item[2],tim,0])
 
             data_final = data2 + data3
         else:
@@ -324,7 +344,7 @@ class Data:
             for (s, p, o, label) in data:
                 if label == 'True' or label == 1:
                     relations.append(p)
-                    data2.append([s, p, o, label])
+                    data2.append([s, p, o, 1])
                 i = i + 1
             relations = set(relations)
             idx_relations = dict()
@@ -332,6 +352,7 @@ class Data:
                 idx_relations[rel] = len(idx_relations)
 
             data3 = []
+            count_positve = len(data2)
             for j in range(len(data2)):
                 item = data2.__getitem__(j)
                 rr =  idx_relations[item[1]]
@@ -343,7 +364,7 @@ class Data:
 
             data_final = data2 + data3
         # data_final.append(data3)
-        return data_final
+        return data_final, count_positve
 
     def generate_only_true_triples(self, data):
         data2 = []

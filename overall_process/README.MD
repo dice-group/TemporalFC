@@ -18,3 +18,5 @@ Note: all entries are not required. Only proofPhrase is used.
 2) Run sentenceEmbeddings.py file to generate Train and Test sentence embeddings from FactCheck output file.
 3) For full-hybrid approach, put the COPAAL result in "dataset/copaal" folder and run GenerateTrainTestTripleSetFullHybrid.py and sentenceEmbeddingsFullHybrid.py files.
 
+#### further pre-req
+4) arrange first true statements and then false.

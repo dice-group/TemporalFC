@@ -111,7 +111,8 @@ class TimePredictionDataset(Dataset):
         self.score_idx = triples_idx[:, 5]
         self.lbl_idx = triples_idx[:, 6]
 
-        assert self.sent_idx == self.head_idx.shape == self.rel_idx.shape == self.tail_idx.shape == self.lbl_idx.shape == self.score_idx.shape == self.time_idx.shape
+        # assert self.sent_idx == self.head_idx.shape == self.rel_idx.shape == self.tail_idx.shape == self.lbl_idx.shape == self.score_idx.shape == self.time_idx.shape
+        assert self.head_idx.shape == self.rel_idx.shape == self.tail_idx.shape == self.lbl_idx.shape  == self.time_idx.shape
         self.length = len(triples_idx)
 
         self.num_entities = num_entities

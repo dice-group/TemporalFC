@@ -50,14 +50,14 @@ class TemporalPredictionModel(BaseKGE):
         self.relation_embeddings = nn.Embedding(self.num_relations, self.embedding_dim_rel)
         self.time_embeddings = nn.Embedding(self.num_times, self.embedding_dim_tim)
 
-        if args.include_veracity == True:
-            self.veracity_score_train1 = args.dataset.veracity_train
-            self.veracity_score_test1 = args.dataset.veracity_test
-            self.veracity_score_valid1 = args.dataset.veracity_valid
-
-            self.veracity_score_train = nn.Embedding(len(self.veracity_score_train1), 1)
-            self.veracity_score_test = nn.Embedding(len(self.veracity_score_test1), 1)
-            self.veracity_score_valid = nn.Embedding(len(self.veracity_score_valid1), 1)
+        # if args.include_veracity == True:
+        #     self.veracity_score_train1 = args.dataset.veracity_train
+        #     self.veracity_score_test1 = args.dataset.veracity_test
+        #     self.veracity_score_valid1 = args.dataset.veracity_valid
+        #
+        #     self.veracity_score_train = nn.Embedding(len(self.veracity_score_train1), 1)
+        #     self.veracity_score_test = nn.Embedding(len(self.veracity_score_test1), 1)
+        #     self.veracity_score_valid = nn.Embedding(len(self.veracity_score_valid1), 1)
 
 
 
@@ -71,10 +71,10 @@ class TemporalPredictionModel(BaseKGE):
         self.relation_embeddings.weight.requires_grad = False
         self.time_embeddings.weight.requires_grad = False
 
-        if args.include_veracity == True:
-            self.veracity_score_train.weight.requires_grad = False
-            self.veracity_score_test.weight.requires_grad = False
-            self.veracity_score_valid.weight.requires_grad = False
+        # if args.include_veracity == True:
+        #     self.veracity_score_train.weight.requires_grad = False
+        #     self.veracity_score_test.weight.requires_grad = False
+        #     self.veracity_score_valid.weight.requires_grad = False
 
         # + self.embedding_dim_tim
         self.shallom = nn.Sequential(torch.nn.Linear(self.embedding_dim * 2 + self.embedding_dim_rel  , self.shallom_width),
@@ -87,8 +87,9 @@ class TemporalPredictionModel(BaseKGE):
                                      torch.nn.Linear(self.shallom_width, self.num_times))
 
     # self.embedding_dim_tim
-
-    def forward_triples(self, e1_idx, rel_idx, e2_idx,t_idx, v_idx="", type="training"):
+    def forward_triples(self, e1_idx, rel_idx, e2_idx, tim_idx, sen_idx, v_data, type="training"):
+    #
+    # def forward_triples(self, e1_idx, rel_idx, e2_idx,t_idx, v_idx="", type="training"):
         emb_head_real = self.entity_embeddings(e1_idx)
         emb_rel_real = self.relation_embeddings(rel_idx)
         emb_tail_real = self.entity_embeddings(e2_idx)

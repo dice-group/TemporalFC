@@ -1,8 +1,12 @@
 import pytorch_lightning as pl
+import os
+os.environ['TORCH_USE_CUDA_DSA'] = '-1'
+
 import torch
 from torch import nn
 from torch.nn import functional as F
-from torchmetrics.functional import accuracy
+from torchmetrics.functional import accuracy, retrieval_reciprocal_rank
+# from torchmetrics.functional import retrieval_mean_reciprocal_rank as mrr
 from typing import List, Any, Tuple
 from torch.nn.init import xavier_normal_
 from torch import Tensor as tf
@@ -93,6 +97,14 @@ class BaseKGE(pl.LightningModule):
         else:
             raise ValueError('Not valid input')
 
+    def metric_measures(self, prob, label):
+        # pred = prob.data.detach().numpy()
+        max_pred, idx = torch.max(prob, 1)
+        # sort_pred, idx = torch.sort(prob, dim=1, descending=True)
+
+        # test_mrr = self.mrr_score2(idx, label)
+        return accuracy(idx, label)
+
     def training_step(self, batch, batch_idx):
         idx_s, idx_p, idx_o, t_data, s_data, v_data, label = batch[0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
         # Label conversion
@@ -101,8 +113,15 @@ class BaseKGE(pl.LightningModule):
         # label = self.time_embeddings(t_data)
         # 2. Forward pass
         pred = self.forward_triples(idx_s, idx_p, idx_o, t_data, s_data, v_data, "training")
+        # pred = pred.flatten().float()
+
+        # label = label
+
         # 3. Compute Loss
-        loss = self.loss_function(pred.flatten(), torch.tensor(label,dtype=torch.float))
+        if pred.shape[1]==1:
+            loss = self.loss_function(pred.flatten(), torch.tensor(label,dtype=torch.float))
+        else:
+            loss = self.loss_function(pred, t_data)
         # applying L2 regularization here
         # Replaces pow(2.0) with abs() for L1 regularization
         l2_lambda = 0.001
@@ -113,7 +132,12 @@ class BaseKGE(pl.LightningModule):
         # preds2 = self.get_min_cosine_similarity(label, pred)
         # targets = self.get_target_indices(label, minn)
         # train_accuracy = accuracy(torch.LongTensor(preds2), t_data)
-        train_accuracy = accuracy(pred, label)
+        # print(f"Pred shape: {pred.shape}, Pred dtype: {pred.dtype}")
+        # print(f"Label shape: {label.shape}, Label dtype: {label.dtype}")
+        if pred.shape[1]==1:
+            train_accuracy = accuracy(pred.flatten(), label)
+        else:
+            train_accuracy = self.metric_measures(pred, t_data)
         return {'acc': train_accuracy, 'loss': loss}
 
     def training_epoch_end(self, outputs) -> None:
@@ -122,18 +146,42 @@ class BaseKGE(pl.LightningModule):
         self.log('avg_train_loss_per_epoch', avg_train_loss, on_epoch=True, prog_bar=True)
         self.log('avg_train_acc_per_epoch', avg_train_acc, on_epoch=True, prog_bar=True)
 
+    # def mrr_score2(self, predictions, labels):
+    #     # Convert predictions and labels to numpy arrays
+    #     predictions = np.array(predictions)
+    #     labels = np.array(labels)
+    #
+    #     # Compute the reciprocal rank for each query
+    #     reciprocal_ranks = []
+    #     for query_index in range(len(predictions)):
+    #         # Get the prediction and label for the current query
+    #         prediction = predictions[query_index]
+    #         label = labels[query_index]
+    #
+    #         # Find the rank of the highest ranked relevant item
+    #         rank = np.where(prediction == label)[0][0] + 1
+    #         reciprocal_rank = 1.0 / rank
+    #         reciprocal_ranks.append(reciprocal_rank)
+    #
+    #         # Return the mean of all the reciprocal ranks
+    #     return np.mean(reciprocal_ranks)
+
 
     def validation_step(self, batch, batch_idx):
         idx_s, idx_p, idx_o, t_data,s_data, v_data, label = batch[0], batch[1], batch[2], batch[3], batch[4], batch[5], batch[6]
         # Label conversion
         # label = t_data
         # label = self.time_embeddings(t_data)
-        # 2. Forward pass
+        # 2. Forward pass-> veracity data and sentence data vectors are not needed so smaller size
         pred = self.forward_triples(idx_s, idx_p, idx_o, t_data, s_data, v_data, "valid")
 
 
         # Find the Loss
-        loss = self.loss_function(pred.flatten(), torch.tensor(label,dtype=torch.float))
+        # loss = self.loss_function(pred.flatten(), torch.tensor(label,dtype=torch.float))
+        if pred.shape[1]==1:
+            loss = self.loss_function(pred.flatten(), label.float())
+        else:
+            loss = self.loss_function(pred, t_data)
         # applying L2 regularization here
         l2_lambda = 0.001
         l2_norm = sum(p.pow(2.0).sum()
@@ -142,7 +190,13 @@ class BaseKGE(pl.LightningModule):
         loss = loss + l2_lambda * l2_norm
         # preds2 = self.get_min_cosine_similarity2(label.numpy(), pred.numpy())
         # targets = self.get_target_indices(label, minn)
-        val_accuracy = accuracy(pred, label)
+        # print(f"Pred shape: {pred.shape}, Pred dtype: {pred.dtype}")
+        # print(f"LAbel shape: {label.shape}, LAbel dtype: {label.dtype}")
+
+        if pred.shape[1]==1:
+            val_accuracy = accuracy(pred.flatten(), label)
+        else:
+            val_accuracy = self.metric_measures(pred, t_data)
 
         return {'val_acc': val_accuracy, 'val_loss': loss}
 
@@ -163,7 +217,11 @@ class BaseKGE(pl.LightningModule):
         # test_accuracy = accuracy(pred, label)
         # preds2 = self.get_min_cosine_similarity(label, pred)
         # targets = self.get_target_indices(label, minn)
-        test_accuracy = accuracy(pred, label)
+        # test_accuracy = accuracy(pred, label)
+        if pred.shape[1]==1:
+            test_accuracy = accuracy(pred.flatten(), label)
+        else:
+            test_accuracy = self.metric_measures(pred, t_data)
 
         return {'test_accuracy': test_accuracy}
 

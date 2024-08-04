@@ -96,7 +96,7 @@ class TemporalFullHybridModel(BaseKGE):
                                                         nn.Dropout(0.50),
                                                         torch.nn.Linear(self.shallom_width, 1))
 
-    def forward_triples(self, e1_idx, rel_idx, e2_idx, tim_idx, sen_idx, type="training"):
+    def forward_triples(self, e1_idx, rel_idx, e2_idx, tim_idx, sen_idx, v_data, type="training"):
         # print(sen_idx)
         emb_head_real = self.entity_embeddings(e1_idx)
         emb_rel_real = self.relation_embeddings(rel_idx)

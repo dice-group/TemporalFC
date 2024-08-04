@@ -88,7 +88,7 @@ def sanity_checking_with_arguments(args):
         print(f'embedding_dim must be strictly positive. Currently:{args.embedding_dim}')
         raise
 
-    if not (args.sub_dataset_path == None or args.prop == None or bool(args.cmp_dataset)==False ):
+    if not (args.sub_dataset_path == None or args.prop == None or bool(args.complete_dataset)==False ):
         print(f'Invalid arguments, please specify the type of distribution you want => simple_split/property_split/complete_dataset.')
         exit(1)
 
@@ -109,7 +109,7 @@ def sanity_checking_with_arguments(args):
             try:
                 assert args.negative_triple_generation != "False"
             except AssertionError:
-                print(f'For fact-checking task you must specify a negative triple generation method!')
+                print(f'For fact-checkingl task you must specify a negative triple generation method!')
                 raise
         elif str(args.task).lower() == "time-prediction":
             try:

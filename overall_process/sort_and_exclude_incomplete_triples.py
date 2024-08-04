@@ -108,9 +108,9 @@ class SortandExcludeIncompleteTriples:
 def argparse_default(description=None):
     parser = pl.Trainer.add_argparse_args(argparse.ArgumentParser())
     # Paths.
-    parser.add_argument("--dataset_name", type=str, default='factbench')
+    parser.add_argument("--dataset_name", type=str, default='favel')
     parser.add_argument("--dataset_path", type=str, default='../data_TP/')
-    parser.add_argument("--type", type=str, default='train')
+    parser.add_argument("--type", type=str, default='test')
     if description is None:
         return parser.parse_args()
     else:
