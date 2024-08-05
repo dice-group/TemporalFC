@@ -21,13 +21,13 @@ cd TemporalFC
 ``` 
 
 ## Reproducing Results
-There are two options to repreoduce the results. 
-1) using pre-generated data, and 
-2) Regenerate data from scratch.
+There are two options to reproduce results. 
+1) Using pre-processed input dataset, and 
+2) Regenerate input dataset from scratch.
 
-Select any 1 of the these 2 options above.
+Select any 1 of these 2 options.
 
-### 1) Re-Using pre-generated data
+### 1) Re-Using pre-generated dataset
 download and unzip data and embeddings files in the root folder of the project.
 
 ``` html
@@ -42,7 +42,7 @@ Note: if it gives permission denied error you can try running the commands with 
 
 
 
-### 2) Generating data from scratch
+### 2) Generating dataset from scratch
 To regenerate data from scratch, you need to re-train the embedding algorithm again and put the generated embeddings in data_TP/dataset_name/embeddings folder, and dataset in data_TP/dataset_name/train and data_TP/dataset_name/test foder.
 
 Detailed instructions are in [overall_process](https://github.com/dice-group/TemporalFC/tree/main/overall_process) folder.
