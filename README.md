@@ -1,4 +1,5 @@
 # TemporalFC: A Temporal Fact-Checking Approach for Knowledge Graphs
+<p><img src = "https://files.dice-research.org/datasets/ISWC2023_TemporalFC//logo.jpeg" alt = "TemporalFC Logo" width = "30%" align = "center"></p>
 
 This open-source project contains the Python implementation of our approach [TemporalFC](https://papers.dice-research.org/2023/ISWC_TemporalFC/public.pdf) (published at ISWC2023). This project is designed to ease real-world applications of fact-checking over knowledge graphs and produce better results. With this aim, we rely on:
 
