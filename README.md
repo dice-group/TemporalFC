@@ -111,6 +111,57 @@ As future work, we will exploit the modularity of TemporalFC by integrating time
 
 ## Acknowledgement 
 The work has been supported by the EU H2020 Marie Skłodowska-Curie project KnowGraphs (no. 860801)).
+
+## References
+If you find our work useful in your research, please consider citing the respective paper:
+```
+#TemporalFC
+@inproceedings{10.1007/978-3-031-47240-4_25,
+author = {Qudus, Umair and R\"{o}der, Michael and Kirrane, Sabrina and Ngomo, Axel-Cyrille Ngonga},
+title = {TemporalFC: A Temporal Fact Checking Approach over&nbsp;Knowledge Graphs},
+year = {2023},
+isbn = {978-3-031-47239-8},
+publisher = {Springer-Verlag},
+address = {Berlin, Heidelberg},
+url = {https://doi.org/10.1007/978-3-031-47240-4_25},
+doi = {10.1007/978-3-031-47240-4_25},
+booktitle = {The Semantic Web – ISWC 2023: 22nd International Semantic Web Conference, Athens, Greece, November 6–10, 2023, Proceedings, Part I},
+pages = {465–483},
+numpages = {19},
+keywords = {temporal fact checking, ensemble learning, transfer learning, time-point prediction, temporal knowledge graphs},
+location = {Athens, Greece}
+}
+
+
+#HybridFC
+@InProceedings{10.1007/978-3-031-19433-7_27,
+author="Qudus, Umair
+and R{\"o}der, Michael
+and Saleem, Muhammad
+and Ngonga Ngomo, Axel-Cyrille",
+editor="Sattler, Ulrike
+and Hogan, Aidan
+and Keet, Maria
+and Presutti, Valentina
+and Almeida, Jo{\~a}o Paulo A.
+and Takeda, Hideaki
+and Monnin, Pierre
+and Pirr{\`o}, Giuseppe
+and d'Amato, Claudia",
+title="HybridFC: A Hybrid Fact-Checking Approach for Knowledge Graphs",
+booktitle="The Semantic Web -- ISWC 2022",
+year="2022",
+publisher="Springer International Publishing",
+address="Cham",
+pages="462--480",
+isbn="978-3-031-19433-7"
+}
+
+
+
+```
+
+
 ## Authors
 * [Umair Qudus](https://dice-research.org/UmairQudus) (DICE, Paderborn University) 
 * [ Michael Röder](https://dice-research.org/MichaelRoeder) (DICE,  Paderborn University) 
