@@ -158,9 +158,9 @@ isbn="978-3-031-19433-7"
 }
 
 
-
 ```
 
+In case you have any question, please contact: ```umair.qudus@uni-paderborn.de``` or ```umair.qudus@hotmail.com```
 
 ## Authors
 * [Umair Qudus](https://dice-research.org/UmairQudus) (DICE, Paderborn University) 
