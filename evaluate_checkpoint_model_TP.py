@@ -73,13 +73,13 @@ def metric_measures( prob, label):
     sort_pred, idx  = torch.sort(prob, dim=1, descending=True)
 
     test_mrr = mrr_score2(idx, label)
-    print(test_mrr)
+    print("MRR:"+test_mrr)
 
     hit_1 = hits_k(idx, label, 1)
     hit_10 = hits_k(idx, label, 3)
-    print(hit_1)
-    print(hit_10)
-    print(accuracy_score(max_pred, label))
+    print("Hit@1:"+hit_1)
+    print("Hit@10:"+hit_10)
+    print("Accuracy scores:"+accuracy_score(max_pred, label))
 def restore_checkpoint(self, model: "pl.LightningModule", ckpt_path: Optional[str] = None):
     return  model.load_from_checkpoint(ckpt_path)
 
@@ -108,7 +108,6 @@ def start_process():
         args.subpath = None
         args.path_dataset_folder = 'data_TP/'
 
-
     for cc in clss:
         # methods = ["temporal-prediction-model, temporal-full-hybrid"]
         methods = ["temporal-prediction-model"]
@@ -132,6 +131,7 @@ def start_process():
             model, frm = select_model(args)
 
             dirs = os.listdir(os.path.dirname(os.path.abspath("dataset")) + "/dataset/HYBRID_Storage/")
+            negative_triple_type = args.negative_triple_generation
 
             for flder in dirs:
                 if args.checkpoint_dir_folder != 'all':
@@ -144,7 +144,8 @@ def start_process():
                     if chk.startswith("sample") and chk.lower().__contains__("-" + cc.replace("/", "").lower() + "=") \
                             and (chk.lower()).__contains__(cls.lower()) and (chk.lower()).__contains__(
                         "--" + str(args.emb_type).lower() + "") \
-                            and (chk.lower()).__contains__(cc_change.lower()):
+                            and (chk.lower()).__contains__(cc_change.lower())\
+                            and (chk.lower()).__contains__(negative_triple_type.lower()):
                         print(chk)
                         file_name = chk  # "sample-"+cls.replace("/","")+"=0--"+cls2.replace("/","")+"=0-epoch=09-val_loss=0.00.ckpt"
                         pth = os.path.dirname(os.path.abspath(file_name)).replace("comparison",
@@ -169,6 +170,7 @@ def start_process():
                         # np.savetxt(os.path.dirname(os.path.abspath("dataset")) + "/dataset/HYBRID_Storage/" + flder + "/"+'predictions_train.txt', prob.detach().numpy())
                         # pred = (prob > 0.50).float()
                         # pred = pred.data.detach().numpy()
+                        print("Training scrores")
                         metric_measures(prob, label=y_train)
 
                         # print('Acc score on train data', accuracy_score(y_train, pred))
@@ -191,6 +193,7 @@ def start_process():
                         prob = model.forward_triples(idx_s, idx_p, idx_o, x_data, sen_idx, v_data, "testing")
                         # np.savetxt(os.path.dirname(os.path.abspath(
                         #     "dataset")) + "/dataset/HYBRID_Storage/" + flder + "/" + 'predictions_test.txt', prob.detach().numpy())
+                        print("Testing scrores")
                         metric_measures(prob, label=y_test)
 
                         exit(1)

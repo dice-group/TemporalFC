@@ -45,7 +45,7 @@ Note: if it gives permission denied error you can try running the commands with 
 ### 2) Generating data from scratch
 To regenerate data from scratch, you need to re-train the embedding algorithm again and put the generated embeddings in data_TP/dataset_name/embeddings folder, and dataset in data_TP/dataset_name/train and data_TP/dataset_name/test foder.
 
-Detailed instructions are in overall_process folder.
+Detailed instructions are in [overall_process](https://github.com/dice-group/TemporalFC/tree/main/overall_process) folder.
 
 ## Running experiments
 Install dependencies via conda:
@@ -63,33 +63,47 @@ conda activate tfc
 
 ```
 start generating results:
+
+#### Fact Checking component
 ``` html
 
 # Start training process, with required number of hyperparemeters. Details about other hyperparameters is in main.py file.
-python run.py             --dataset DBPedia5             --model sFourDETim             --rank 100             --regularizer N3             --reg 0.00000000001             --optimizer Adagrad             --max_epochs 500             --patience 15             --valid 10             --batch_size 100             --neg_sample_size -1             --init_size 0.001             --learning_rate 0.1             --gamma 0.0             --bias learn             --dtype single             --double_neg             --cuda_n 2             --dataset_type quintuple_Tim
+python main.py --eval_dataset Dbpedia124k --model temporal-full-hybrid  --max_num_epochs 500   --min_num_epochs 50 --batch_size 12000 --val_batch_size 1000  --negative_triple_generation corrupted-triple-based  --task fact-checking --emb_type dihedron --embedding_dim 100 --num_workers 1
 # computing evaluation files from saved model in "dataset/Hybrid_Stroage" directory
-python evaluate_checkpoint_model.py        --dataset DBPedia5             --model sFourDETim             --rank 100             --regularizer N3             --reg 0.00000000001             --optimizer Adagrad             --max_epochs 500             --patience 15             --valid 10             --batch_size 100             --neg_sample_size -1             --init_size 0.001             --learning_rate 0.1             --gamma 0.0             --bias learn             --dtype single             --double_neg             --cuda_n 2             --dataset_type quintuple_Tim
+python evaluate_checkpoint_model_FC.py --checkpoint_dir_folder all --checkpoint_dataset_folder dataset/  --eval_dataset Dbpedia124k --model temporal-full-hybrid  --max_num_epochs 500   --min_num_epochs 50 --batch_size 12000 --val_batch_size 1000  --negative_triple_generation corrupted-triple-based  --task fact-checking --emb_type dihedron --embedding_dim 100 --num_workers 1
+
+``` 
+
+#### Time-point prediction component
+
+``` html
+
+# Start training process, with required number of hyperparemeters. Details about other hyperparameters is in main.py file.
+python main.py --eval_dataset Dbpedia124k --model temporal-prediction-model  --max_num_epochs 500   --min_num_epochs 50 --batch_size 12000 --val_batch_size 1000  --negative_triple_generation False  --task time-prediction --emb_type dihedron --embedding_dim 100 --num_workers 1
+# computing evaluation files from saved model in "dataset/Hybrid_Stroage" directory
+python evaluate_checkpoint_model_TP.py --checkpoint_dir_folder all --checkpoint_dataset_folder dataset/  --eval_dataset Dbpedia124k --model temporal-prediction-model  --max_num_epochs 500   --min_num_epochs 50 --batch_size 12000 --val_batch_size 1000  --negative_triple_generation False  --task time-prediction --emb_type dihedron --embedding_dim 100 --num_workers 1
+
 ``` 
 
 ##### comments:
 1. To reproduce exact results you have to use exact parameters as listed above.
 
-2. For other datasets you need to change the parameter in front of --dataset
+2. For other datasets you need to change the parameter in front of --eval_dataset
 
-3. Use GPU for fast processing. Default parameter is set to 2 GPUs that we used to generate results.
-
-4. For different embeddings type(emb_type) or model type(model), you just need to change the parameters. 
+3. Use parallel processing for fast processing. Default parameter is set to 4 workers that we used to generate results.
 
 Available embeddings types:
-[dihedron](https://link.springer.com/chapter/10.1007/978-3-031-06981-9_15), [T-TransE](https://aclanthology.org/C16-1161/), [T-ComplEx]().
+[dihedron](https://link.springer.com/chapter/10.1007/978-3-031-06981-9_15)
 
 Available models:
-temporal-model
+temporal-prediction-model, temporal-full-hybrid
 
 Note: model names are case-sensitive. So please use exact names.
 
-## Fact checking part:
-Fact checking part of TemporalFC is available in a second project: [TemporalFC-FactCheck](https://github.com/factcheckerr/TemporalFC-FC-part).  
+#### Fact checking part:
+Fact checking part should contain negative triple generation parameter. 
+
+Available options are: (1) corrupted-triple-based and (2) corrupted-time-based,
 
 ## Future plan:
 As future work, we will exploit the modularity of TemporalFC by integrating time-period based fact checking. 

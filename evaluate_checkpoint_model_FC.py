@@ -111,7 +111,6 @@ def start_process():
     dataset = [args.eval_dataset]
     args.subpath = None
 
-
     for cc in dataset:
         # methods = ["hybridfc-full-hybrid", "KGE-only", "text-only", "path-only", "text-KGE-Hybrid", "text-path-Hybrid", "KGE-path-Hybrid","temporal-model"]
         methods = [args.model]
@@ -142,11 +141,11 @@ def start_process():
                     cc_change = cc
                     if cc.__contains__("/"):
                         cc_change = cc[:-1].lower()
-                    if (chk.startswith("sample")
-                            and (chk.lower()).__contains__(cls.lower())
-                            and (chk.lower()).__contains__("--" + str(args.emb_type).lower() + "") \
+                    if chk.startswith("sample") and chk.lower().__contains__("-" + cc.replace("/", "").lower() + "=") \
+                            and (chk.lower()).__contains__(cls.lower()) and (chk.lower()).__contains__(
+                        "--" + str(args.emb_type).lower() + "") \
                             and (chk.lower()).__contains__(cc_change.lower())\
-                            and (chk.lower()).__contains__(negative_triple_type.lower())):
+                            and (chk.lower()).__contains__(negative_triple_type.lower()):
                         print(chk)
                         if (not chk.lower().__contains__('temporal-prediction')):
                             file_name = chk  # "sample-"+cls.replace("/","")+"=0--"+cls2.replace("/","")+"=0-epoch=09-val_loss=0.00.ckpt"
@@ -208,6 +207,7 @@ def start_process():
                                 "dataset")) + "/dataset/HYBRID_Storage/" + flder + "/" + 'predictions_test.txt', prob.detach().numpy())
                             metric_measures(prob, label=y_test)
 
+                            print("Complete- Prediction files stored in model folder. Upload them to Gerbil framework to find AUCROC scores")
                             exit(1)
 
 
