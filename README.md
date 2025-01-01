@@ -118,7 +118,7 @@ If you find our work useful in your research, please consider citing the respect
 ```bibtex
 
 #TemporalFC
-@inproceedings{10.1007/978-3-031-47240-4_25,
+@inproceedings{qudus2023TemporalFC,
 author = {Qudus, Umair and R\"{o}der, Michael and Kirrane, Sabrina and Ngomo, Axel-Cyrille Ngonga},
 title = {TemporalFC: A Temporal Fact Checking Approach over&nbsp;Knowledge Graphs},
 year = {2023},
@@ -136,28 +136,23 @@ location = {Athens, Greece}
 
 
 #HybridFC
-@InProceedings{10.1007/978-3-031-19433-7_27,
-author="Qudus, Umair
-and R{\"o}der, Michael
-and Saleem, Muhammad
-and Ngonga Ngomo, Axel-Cyrille",
-editor="Sattler, Ulrike
-and Hogan, Aidan
-and Keet, Maria
-and Presutti, Valentina
-and Almeida, Jo{\~a}o Paulo A.
-and Takeda, Hideaki
-and Monnin, Pierre
-and Pirr{\`o}, Giuseppe
-and d'Amato, Claudia",
-title="HybridFC: A Hybrid Fact-Checking Approach for Knowledge Graphs",
-booktitle="The Semantic Web -- ISWC 2022",
-year="2022",
-publisher="Springer International Publishing",
-address="Cham",
-pages="462--480",
-isbn="978-3-031-19433-7"
+
+@InProceedings{qudus2022HybridFC,
+  Author      = {Qudus, Umair and Röder, Michael and Saleem,Muhammad and Ngomo, Axel-Cyrille Ngonga},
+  Editor       ={Sattler, Ulrike and Hogan, Aidan and Keet, Maria and Presutti, Valentina and Almeida, Jo{\~a}o Paulo A. and Takeda, Hideaki and Monnin, Pierre and Pirr{\`o}, Giuseppe and d'Amato, Claudia},
+  Title          = {HybridFC: A Hybrid Fact-Checking Approach for Knowledge Graphs},
+  booktitle   = {The Semantic Web -- ISWC 2022},
+  Year          = {2022},
+  Doi            = {10.1007/978-3-031-19433-7\_27},
+  isbn           ={978-3-031-19433-7},
+  pages        = {462--480},
+  address     ={Cham},
+  publisher   =  {Springer International Publishing},
+  biburl        = {https://www.bibsonomy.org/bibtex/2ec2f0b9ee7ca0c1c6ef1d8fbcd7262e4/dice-research},
+  keywords  = {knowgraphs frockg raki 3dfed dice ngonga saleem roeder qudus},
+  url             = {https://papers.dice-research.org/2022/ISWC_HybridFC/public.pdf},
 }
+
 
 ```
 
