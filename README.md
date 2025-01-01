@@ -114,7 +114,9 @@ The work has been supported by the EU H2020 Marie Skłodowska-Curie project Know
 
 ## References
 If you find our work useful in your research, please consider citing the respective paper:
-```
+
+```bibtex
+
 #TemporalFC
 @inproceedings{10.1007/978-3-031-47240-4_25,
 author = {Qudus, Umair and R\"{o}der, Michael and Kirrane, Sabrina and Ngomo, Axel-Cyrille Ngonga},
@@ -156,7 +158,6 @@ address="Cham",
 pages="462--480",
 isbn="978-3-031-19433-7"
 }
-
 
 ```
 
