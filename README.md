@@ -118,21 +118,23 @@ If you find our work useful in your research, please consider citing the respect
 ```bibtex
 
 #TemporalFC
+
 @inproceedings{qudus2023TemporalFC,
 author = {Qudus, Umair and R\"{o}der, Michael and Kirrane, Sabrina and Ngomo, Axel-Cyrille Ngonga},
-title = {TemporalFC: A Temporal Fact Checking Approach over&nbsp;Knowledge Graphs},
+title = {TemporalFC: A Temporal Fact Checking Approach over Knowledge Graphs},
 year = {2023},
 isbn = {978-3-031-47239-8},
 publisher = {Springer-Verlag},
 address = {Berlin, Heidelberg},
-url = {https://doi.org/10.1007/978-3-031-47240-4_25},
-doi = {10.1007/978-3-031-47240-4_25},
+url = {https://doi.org/10.1007/978-3-031-47240-4\_25},
+doi = {10.1007/978-3-031-47240-4\_25},
 booktitle = {The Semantic Web – ISWC 2023: 22nd International Semantic Web Conference, Athens, Greece, November 6–10, 2023, Proceedings, Part I},
 pages = {465–483},
 numpages = {19},
 keywords = {temporal fact checking, ensemble learning, transfer learning, time-point prediction, temporal knowledge graphs},
 location = {Athens, Greece}
 }
+
 
 
 #HybridFC
